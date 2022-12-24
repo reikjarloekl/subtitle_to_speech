@@ -1,2 +1,2 @@
 gtts
-scriptine
+typer

@@ -2,7 +2,7 @@
 from gtts import gTTS
 from subprocess import call
 import os
-import scriptine
+import typer
 import random
 import string
 
@@ -42,7 +42,7 @@ def convert_str_to_wav_in_docker_command(srt_file="", outfilename="", lang='', t
         filenames = [srt_file, ]
     for file_name in filenames:
         if file_name[-4:] == ".srt":
-            print ("language of %s: %s" % (file_name, lang))
+            typer.echo ("language of %s: %s" % (file_name, lang))
             convert_str_to_wav_command(
                 srt_file="/data/%s" % file_name,
                 outfile_path="/data/%s.wav" % (file_name[:-4] if outfilename == "" else outfilename),
@@ -57,7 +57,7 @@ def get_language_from_filename(file_name):
             raise Exception()
         return file_name[rindex:-4]
     except Exception:
-        print("No language found. To specify it, ends the filename with .fr.srt or .en.srt") 
+        typer.echo("No language found. To specify it, ends the filename with .fr.srt or .en.srt") 
         return "en"
 
 def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo=-1):
@@ -98,7 +98,7 @@ def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo=-1):
             )
             line_id+=4
         except Exception as e:
-            print("Error at line " + str(line_id) + " in " + srt_file)
+            typer.echo("Error at line " + str(line_id) + " in " + srt_file)
             raise e
         #if len(part_files) == 2:
         #    call(['sox', '-m'] + part_files + [tmp_outfile_path])
@@ -113,4 +113,4 @@ def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo=-1):
     
 #convert subtitle (.srt) to speech (.wav) using google API
 if __name__ == '__main__':
-    scriptine.run()
+    typer.run(convert_str_to_wav_command)
