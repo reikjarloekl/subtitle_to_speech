@@ -24,7 +24,7 @@ def convert_string_to_wav(text, outfile_path, lang='en', delay=0, tempo=1.2):
     call(["sox", outfile_path+'.tmp.wav', outfile_path, "tempo", str(tempo), "delay", str(delay)])
     os.remove(outfile_path+'.tmp.wav')
     os.remove(outfile_path+'.tmp.mp3')
-    
+
 def convert_str_to_wav_in_docker_command(srt_file="", outfilename="", lang='', tempo:float = 1.2):
     """
     Convert a subtitle file found in /data into a wav file
@@ -49,7 +49,7 @@ def convert_str_to_wav_in_docker_command(srt_file="", outfilename="", lang='', t
                 lang=get_language_from_filename(file_name) if lang == "" else lang,
                 tempo=tempo,
             )
-    
+
 def get_language_from_filename(file_name):
     try:
         rindex = file_name[:-4].rindex('.')+1
@@ -60,29 +60,30 @@ def get_language_from_filename(file_name):
         typer.echo("No language found. To specify it, ends the filename with .fr.srt or .en.srt") 
         return "en"
 
-def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo:float = -1.0):
+def convert_str_to_wav_command(
+    srt_file, 
+    outfile_path, 
+    lang= typer.Option("en", help="Define language of the srt file. Helps determine text speed."),
+    tmp_path= typer.Option("/tmp", help="Define different temporary folder to use."),
+    tempo:float= typer.Option(1.2, help="Speed of generated speech. 1.2 is normal (default) speed. Higher is faster."),
+    ogg:bool= typer.Option(False, help="Additionally create ogg file as output.")
+):
     """
-    Convert a subtitle file into a wav file
-
-    Args:
-        :param srt_file: path to the subtitle file in srt format
-        :param outfile_path: where to write the outfile
-        :param lang: the language, english by default
-        :param tempo: speed of speech, google defaut is 1 but too slow
-
+    Convert a subtitle file into a wav file using Google text to speech.
     """
-    if tempo < 0 :
-        if lang == "fr" :
-            tempo = 1.35
-        else:
-            tempo = 1.2
+    if (tempo != 1.2) and (lang != "en"):
+        print("You set both tempo and language. Please choose one.")
+        raise typer.Abort()
+
+    if lang == "fr":
+        tempo = 1.35
     f = open(srt_file, 'r')
     lines = f.readlines()
     line_id=0
     part_files=[]
     ran_str=lang+''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
-    tmp_outfile_path="/tmp/%s-out.wav"%ran_str
-    while line_id+2<len(lines):
+    tmp_outfile_path=os.path.join(tmp_path,"%s-out.wav"%ran_str)
+    while line_id+2 < len(lines):
         try:
             name = lines[line_id+0].replace("\r","")[:-1]
             timming = lines[line_id+1].replace("\r","")[:-1]
@@ -91,7 +92,7 @@ def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo:float = 
             start_time_parts = start_time.split(":")
             seconds = start_time_parts[2].split(".")[0]
             delay = ((int(start_time_parts[0]) * 60 + int(start_time_parts[1])) * 60 + int(seconds))
-            part_files.append("/tmp/%s-%s.wav"%(ran_str,name))
+            part_files.append(os.path.join(tmp_path,"%s-%s.wav"%(ran_str,name)))
             convert_string_to_wav(
                 text=text,
                 outfile_path=part_files[-1],
@@ -110,10 +111,11 @@ def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo:float = 
         #    call(['mv', tmp_outfile_path+'-out.wav', tmp_outfile_path])
     call(['sox', '-m'] + part_files + [tmp_outfile_path, 'norm'])
     call(['mv', tmp_outfile_path, outfile_path])
-    call(["sox", outfile_path, outfile_path[:-3]+'ogg'])
+    if ogg:
+        call(["sox", outfile_path, outfile_path[:-3]+'ogg'])
     call(['rm'] + part_files)
-    
-    
+
+
 #convert subtitle (.srt) to speech (.wav) using google API
 if __name__ == '__main__':
     typer.run(convert_str_to_wav_command)
