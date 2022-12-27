@@ -19,13 +19,13 @@ def convert_string_to_wav(text, outfile_path, lang='en', delay=0, tempo=1.2):
         :param tempo: speed of speech, google defaut is 1 but too slow
 
     """
-    tts = gTTS(text=text.decode('utf-8'), lang=lang, slow=False).save(outfile_path+'.tmp.mp3')
+    tts = gTTS(text=text, lang=lang, slow=False).save(outfile_path+'.tmp.mp3')
     call(["mpg123", "-w", outfile_path+'.tmp.wav', outfile_path+'.tmp.mp3'])
     call(["sox", outfile_path+'.tmp.wav', outfile_path, "tempo", str(tempo), "delay", str(delay)])
     os.remove(outfile_path+'.tmp.wav')
     os.remove(outfile_path+'.tmp.mp3')
     
-def convert_str_to_wav_in_docker_command(srt_file="", outfilename="", lang='', tempo=1.2):
+def convert_str_to_wav_in_docker_command(srt_file="", outfilename="", lang='', tempo:float = 1.2):
     """
     Convert a subtitle file found in /data into a wav file
 
@@ -60,7 +60,7 @@ def get_language_from_filename(file_name):
         typer.echo("No language found. To specify it, ends the filename with .fr.srt or .en.srt") 
         return "en"
 
-def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo=-1):
+def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo:float = -1.0):
     """
     Convert a subtitle file into a wav file
 
@@ -71,7 +71,7 @@ def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo=-1):
         :param tempo: speed of speech, google defaut is 1 but too slow
 
     """
-    if tempo == -1 :
+    if tempo < 0 :
         if lang == "fr" :
             tempo = 1.35
         else:
@@ -87,7 +87,10 @@ def convert_str_to_wav_command(srt_file, outfile_path, lang='en', tempo=-1):
             name = lines[line_id+0].replace("\r","")[:-1]
             timming = lines[line_id+1].replace("\r","")[:-1]
             text = lines[line_id+2].replace("\r","")[:-1]
-            delay = ((int(timming[0:2]) * 60 + int(timming[3:5])) * 60 + int(timming[6:8]))
+            start_time = timming.split(" --> ")[0]
+            start_time_parts = start_time.split(":")
+            seconds = start_time_parts[2].split(".")[0]
+            delay = ((int(start_time_parts[0]) * 60 + int(start_time_parts[1])) * 60 + int(seconds))
             part_files.append("/tmp/%s-%s.wav"%(ran_str,name))
             convert_string_to_wav(
                 text=text,
